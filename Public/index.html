@@ -1,199 +1,504 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Financial Advisor</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-  body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #e0f2fe, #ede9fe, #f3e8ff); margin: 0; padding: 20px; }
-  .container { max-width: 1200px; margin: auto; }
-  h1 { font-size: 3rem; text-align: center; background: linear-gradient(to right, #4f46e5, #8b5cf6); -webkit-background-clip: text; color: transparent; margin-bottom: 20px; }
-  .card { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); margin-bottom: 20px; }
-  input, select { width: 100%; padding: 10px; border-radius: 10px; border: 2px solid #cbd5e1; margin-bottom: 10px; }
-  button { background: linear-gradient(to right, #4f46e5, #8b5cf6); color: white; font-weight: bold; padding: 15px; border: none; border-radius: 15px; cursor: pointer; width: 100%; margin-top: 10px; }
-  button:hover { opacity: 0.9; }
-  .stats { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
-  .stat-card { flex: 1; min-width: 150px; background: linear-gradient(to bottom right, #34d399, #10b981); color: white; padding: 20px; border-radius: 15px; text-align: center; }
-  canvas { background: #fff; border-radius: 15px; padding: 10px; margin-bottom: 20px; }
-  .advice { background: #f0f9ff; border-left: 5px solid #3b82f6; padding: 15px; border-radius: 10px; margin-bottom: 20px; white-space: pre-line; }
-  .chat { margin-top: 20px; }
-  .chat-message { padding: 10px; border-radius: 10px; margin-bottom: 10px; max-width: 70%; }
-  .user { background: #bfdbfe; margin-left: auto; text-align: right; }
-  .ai { background: #ddd6fe; margin-right: auto; }
-  /* Loading modal */
-  #loading { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); justify-content: center; align-items: center; }
-  #loading div { background: white; padding: 40px; border-radius: 20px; text-align: center; }
-  .spinner { width: 60px; height: 60px; border: 5px solid #4f46e5; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin: auto; margin-bottom: 20px; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .dots { display:inline-block; font-weight:bold; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Financial Advisor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
 </head>
-<body>
-<div class="container">
-  <h1>AI Financial Advisor</h1>
+<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 min-h-screen p-6">
 
-  <div class="card">
-    <h2>Monthly Income</h2>
-    <input type="number" id="income" placeholder="5000">
-    <select id="payFrequency">
-      <option value="weekly">Weekly</option>
-      <option value="biweekly">Bi-Weekly</option>
-    </select>
-  </div>
-
-  <div class="card">
-    <h2>Monthly Expenses</h2>
-    <input type="number" id="rent" placeholder="Rent">
-    <input type="number" id="utilities" placeholder="Utilities">
-    <input type="number" id="groceries" placeholder="Groceries">
-    <input type="number" id="transportation" placeholder="Transport">
-    <input type="number" id="insurance" placeholder="Insurance">
-    <input type="number" id="entertainment" placeholder="Entertainment">
-    <input type="number" id="other" placeholder="Other">
-  </div>
-
-  <div class="card">
-    <h2>Goals & Projections</h2>
-    <input type="number" id="currentSavings" placeholder="Current Savings">
-    <input type="number" id="goalAmount" placeholder="Goal Amount">
-    <select id="projectionYears">
-      <option value="1">1 Year</option>
-      <option value="3">3 Years</option>
-      <option value="5" selected>5 Years</option>
-      <option value="10">10 Years</option>
-      <option value="15">15 Years</option>
-      <option value="20">20 Years</option>
-    </select>
-  </div>
-
-  <button onclick="startAnalysis()">Get AI Financial Advice</button>
-
-  <div id="results"></div>
-  <div id="advice" class="advice" style="display:none;"></div>
-
-  <canvas id="lineChart" width="400" height="200"></canvas>
-  <canvas id="pieChart" width="400" height="200"></canvas>
-  <canvas id="barChart" width="400" height="200"></canvas>
-
-  <div class="card chat">
-    <h2>💬 Ask Your AI Advisor</h2>
-    <input type="text" id="question" placeholder="Ask about your finances..." />
-    <button onclick="askAI()">Ask</button>
-    <div id="chatContainer"></div>
-  </div>
+<!-- Loading Overlay -->
+<div id="loading" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+        <div class="flex flex-col items-center">
+            <div class="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <h3 class="text-2xl font-bold text-gray-800 mb-2">Analyzing Your Finances</h3>
+            <p class="text-gray-600 text-center mb-4">Your AI Financial Advisor is creating your personalized financial plan...</p>
+            <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+                <div class="bg-gradient-to-r from-indigo-600 to-purple-600 h-2 rounded-full animate-pulse" style="width: 70%"></div>
+            </div>
+            <p class="text-sm text-gray-500">This may take a few moments</p>
+        </div>
+    </div>
 </div>
 
-<div id="loading" class="flex">
-  <div>
-    <div class="spinner"></div>
-    <div id="loadingText">Analyzing your finances<span class="dots"></span></div>
-  </div>
+<!-- Input Form Page -->
+<div id="inputPage" class="max-w-7xl mx-auto">
+    <div class="text-center mb-8">
+        <h1 class="text-5xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3">
+            AI Financial Advisor
+        </h1>
+        <p class="text-gray-600 text-lg">Get personalized financial guidance powered by AI</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6 mb-8">
+        <!-- Income Section -->
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Monthly Income</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Take-Home Pay</label>
+                    <input type="number" id="takeHome" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none transition" placeholder="4000">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Pay Frequency</label>
+                    <select id="payFrequency" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none transition">
+                        <option value="weekly">Weekly</option>
+                        <option value="biweekly" selected>Bi-weekly</option>
+                    </select>
+                </div>
+                <div class="mt-4 p-4 bg-green-50 rounded-xl">
+                    <div class="text-sm text-gray-600">Total Monthly Income</div>
+                    <div id="totalIncome" class="text-3xl font-bold text-green-600">$0.00</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expenses Section -->
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Monthly Expenses</h2>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Rent/Mortgage</label>
+                    <input type="number" id="rent" class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none transition text-sm" placeholder="1500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Utilities</label>
+                    <input type="number" id="utilities" class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none transition text-sm" placeholder="150">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Groceries</label>
+                    <input type="number" id="groceries" class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none transition text-sm" placeholder="400">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Transportation</label>
+                    <input type="number" id="transportation" class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none transition text-sm" placeholder="200">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Insurance</label>
+                    <input type="number" id="insurance" class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none transition text-sm" placeholder="150">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Entertainment</label>
+                    <input type="number" id="entertainment" class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none transition text-sm" placeholder="200">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Other</label>
+                    <input type="number" id="otherExpenses" class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none transition text-sm" placeholder="100">
+                </div>
+                <div class="mt-3 p-3 bg-red-50 rounded-xl">
+                    <div class="text-xs text-gray-600">Total Monthly Expenses</div>
+                    <div id="totalExpenses" class="text-2xl font-bold text-red-600">$0.00</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Goals Section -->
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Savings Goals & Projections</h2>
+        <div class="grid md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Current Savings</label>
+                <input type="number" id="currentSavings" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none transition" placeholder="5000">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Savings Goal</label>
+                <input type="number" id="goalAmount" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none transition" placeholder="20000">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Projection Years</label>
+                <input type="number" id="projectionYears" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none transition" placeholder="5" min="1" max="10" value="5">
+            </div>
+        </div>
+    </div>
+
+    <button onclick="calculate()" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-lg font-bold rounded-xl hover:shadow-xl transition-all">
+        Generate AI Financial Plan
+    </button>
+</div>
+
+<!-- Results Page -->
+<div id="resultsPage" class="hidden max-w-7xl mx-auto">
+    <div class="flex items-center justify-between mb-8">
+        <div class="text-center flex-1">
+            <h1 class="text-5xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3">
+                Your Financial Plan
+            </h1>
+            <p class="text-gray-600 text-lg">AI-powered insights and recommendations</p>
+        </div>
+        <button onclick="goBack()" class="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-300 transition">
+            ← Back to Form
+        </button>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="text-sm opacity-90">Monthly Savings</div>
+            <div id="monthlySavings" class="text-3xl font-bold">$0.00</div>
+        </div>
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="text-sm opacity-90">Savings Rate</div>
+            <div id="savingsRate" class="text-3xl font-bold">0%</div>
+        </div>
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="text-sm opacity-90">Per Paycheck</div>
+            <div id="perPaycheck" class="text-3xl font-bold">$0.00</div>
+        </div>
+        <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="text-sm opacity-90">Goal Progress</div>
+            <div id="goalProgress" class="text-3xl font-bold">0%</div>
+        </div>
+    </div>
+
+    <!-- AI Advice -->
+    <div id="adviceSection" class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-lg p-6 border-2 border-indigo-200 mb-6">
+        <h3 class="text-2xl font-bold text-gray-800 mb-4">Your Personalized AI Financial Advice</h3>
+        <div id="financialAdvice" class="text-gray-700 space-y-4"></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid md:grid-cols-2 gap-6 mb-6">
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Expense Breakdown</h3>
+            <canvas id="expenseChart"></canvas>
+        </div>
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Yearly Savings Projection</h3>
+            <canvas id="yearlyChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Q&A Section -->
+    <div class="bg-white rounded-2xl shadow-lg p-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Ask Your AI Financial Advisor</h3>
+        <div id="chatMessages" class="space-y-4 mb-4 max-h-96 overflow-y-auto"></div>
+        <div class="flex gap-2">
+            <input type="text" id="userQuestion" placeholder="Ask about budgeting, saving strategies, debt reduction..." 
+                class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none transition"
+                onkeypress="if(event.key==='Enter') askQuestion()">
+            <button onclick="askQuestion()" id="askBtn" class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition">
+                Ask
+            </button>
+        </div>
+        <div class="mt-3 text-sm text-gray-500">
+            Try asking: "How can I save more?", "Should I invest or save?", "How do I reduce debt?"
+        </div>
+    </div>
 </div>
 
 <script>
-let chatHistory = [];
-let dotInterval;
+let resultsData = null;
+let adviceText = '';
+let expenseChart = null;
+let yearlyChart = null;
 
-function generateFakeAdvice(income, expenses, savings, rate, currentSavings, goalAmount, projectionYears) {
-  let advice = '';
-  advice += 'CURRENT FINANCIAL HEALTH:\n';
-  advice += savings <= 0 ? 'Your expenses are too high. Cut costs.\n' : `You are saving $${savings.toFixed(2)} per month, ${rate.toFixed(1)}% of income.\n`;
-  advice += '\nYOUR PAYCHECK SAVINGS PLAN:\n';
-  const paychecks = document.getElementById('payFrequency').value === 'weekly' ? 52 : 26;
-  advice += `Save $${(savings*12/paychecks).toFixed(2)} per paycheck.\n`;
-  advice += '\nREACHING YOUR GOAL:\n';
-  const projected = currentSavings + savings*12*projectionYears;
-  advice += goalAmount > 0 ? (projected >= goalAmount ? 'You are on track to reach your goal.\n' : 'You may need to save more or extend your timeline.\n') : 'Set a goal to focus your savings.\n';
-  advice += '\nACTION ITEMS:\n';
-  advice += savings <=0 ? 'Reduce discretionary expenses.\n' : 'Continue saving monthly.\n';
-  advice += '\nEXPENSE OPTIMIZATION:\n';
-  advice += 'Review bills and subscriptions for savings opportunities.\n';
-  return advice;
+function updateTotals() {
+    const income = parseFloat(document.getElementById('takeHome').value) || 0;
+    const expenses = ['rent', 'utilities', 'groceries', 'transportation', 'insurance', 'entertainment', 'otherExpenses']
+        .reduce((sum, id) => sum + (parseFloat(document.getElementById(id).value) || 0), 0);
+    
+    document.getElementById('totalIncome').textContent = '$' + income.toFixed(2);
+    document.getElementById('totalExpenses').textContent = '$' + expenses.toFixed(2);
 }
 
-function startAnalysis() {
-  document.getElementById('loading').style.display = 'flex';
-  const dotsSpan = document.querySelector('.dots');
-  let count = 0;
-  dotInterval = setInterval(() => {
-    count = (count + 1) % 4;
-    dotsSpan.textContent = '.'.repeat(count);
-  }, 500);
-  setTimeout(calculate, 2000);
+document.querySelectorAll('input[type="number"]').forEach(input => {
+    input.addEventListener('input', updateTotals);
+});
+
+async function calculate() {
+    const income = parseFloat(document.getElementById('takeHome').value) || 0;
+    const rent = parseFloat(document.getElementById('rent').value) || 0;
+    const utilities = parseFloat(document.getElementById('utilities').value) || 0;
+    const groceries = parseFloat(document.getElementById('groceries').value) || 0;
+    const transportation = parseFloat(document.getElementById('transportation').value) || 0;
+    const insurance = parseFloat(document.getElementById('insurance').value) || 0;
+    const entertainment = parseFloat(document.getElementById('entertainment').value) || 0;
+    const otherExpenses = parseFloat(document.getElementById('otherExpenses').value) || 0;
+    const currentSavings = parseFloat(document.getElementById('currentSavings').value) || 0;
+    const goalAmount = parseFloat(document.getElementById('goalAmount').value) || 0;
+    const projectionYears = parseInt(document.getElementById('projectionYears').value) || 5;
+    const payFrequency = document.getElementById('payFrequency').value;
+
+    if (income === 0) {
+        alert('Please enter your income');
+        return;
+    }
+
+    const expenses = rent + utilities + groceries + transportation + insurance + entertainment + otherExpenses;
+    const savings = income - expenses;
+    const paychecks = payFrequency === 'weekly' ? 52 : 26;
+    const perCheck = savings > 0 ? (savings * 12) / paychecks : 0;
+    const rate = income > 0 ? (savings / income * 100) : 0;
+
+    resultsData = { income, expenses, savings, rate, currentSavings, goalAmount, projectionYears, perCheck, paychecks, payFrequency };
+
+    document.getElementById('loading').classList.remove('hidden');
+
+    try {
+        // Call Cloudflare Worker - REPLACE WITH YOUR WORKER URL
+        const response = await fetch('https://YOUR-WORKER-NAME.YOUR-SUBDOMAIN.workers.dev', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 1000,
+                messages: [{
+                    role: 'user',
+                    content: `You are a financial advisor. Analyze this situation and provide specific, actionable advice:
+
+Monthly Income: $${income.toFixed(2)}
+Monthly Expenses: $${expenses.toFixed(2)}
+Monthly Savings: $${savings.toFixed(2)}
+Savings Rate: ${rate.toFixed(1)}%
+Current Savings: $${currentSavings.toFixed(2)}
+Savings Goal: $${goalAmount.toFixed(2)}
+Pay Frequency: ${payFrequency}
+Savings per Paycheck: $${perCheck.toFixed(2)}
+
+Provide:
+1. Assessment of their financial health
+2. Specific recommendations to improve savings
+3. Timeline to reach their goal
+4. Actionable steps they can take immediately`
+                }]
+            })
+        });
+
+        const result = await response.json();
+        adviceText = result.content?.[0]?.text || 'Unable to generate AI advice at this time.';
+    } catch (error) {
+        console.error('API Error:', error);
+        adviceText = 'Unable to connect to AI advisor. Please check your server configuration.';
+    }
+
+    document.getElementById('loading').classList.add('hidden');
+    showResults();
 }
 
-function calculate() {
-  clearInterval(dotInterval);
-  document.getElementById('loading').style.display = 'none';
+async function askQuestion() {
+    const question = document.getElementById('userQuestion').value.trim();
+    if (!question || !resultsData) return;
 
-  const income = parseFloat(document.getElementById('income').value)||0;
-  const rent = parseFloat(document.getElementById('rent').value)||0;
-  const utilities = parseFloat(document.getElementById('utilities').value)||0;
-  const groceries = parseFloat(document.getElementById('groceries').value)||0;
-  const transportation = parseFloat(document.getElementById('transportation').value)||0;
-  const insurance = parseFloat(document.getElementById('insurance').value)||0;
-  const entertainment = parseFloat(document.getElementById('entertainment').value)||0;
-  const other = parseFloat(document.getElementById('other').value)||0;
-  const currentSavings = parseFloat(document.getElementById('currentSavings').value)||0;
-  const goalAmount = parseFloat(document.getElementById('goalAmount').value)||0;
-  const projectionYears = parseInt(document.getElementById('projectionYears').value)||5;
+    const chatDiv = document.getElementById('chatMessages');
+    const askBtn = document.getElementById('askBtn');
+    
+    // Add user question
+    chatDiv.innerHTML += `
+        <div class="p-4 rounded-xl bg-indigo-50 ml-8">
+            <div class="font-semibold text-sm mb-1 text-gray-600">You</div>
+            <div class="text-gray-800">${question}</div>
+        </div>
+    `;
+    
+    document.getElementById('userQuestion').value = '';
+    askBtn.disabled = true;
+    askBtn.textContent = 'Thinking...';
 
-  const expenses = rent+utilities+groceries+transportation+insurance+entertainment+other;
-  const savings = income-expenses;
-  const rate = income>0 ? savings/income*100 : 0;
+    try {
+        const { income, expenses, savings, rate, currentSavings, goalAmount, perCheck } = resultsData;
+        
+        const context = `You are a financial advisor. Here is the user's financial situation:
 
-  document.getElementById('results').innerHTML = `
-    <div class="stats">
-      <div class="stat-card">Per Paycheck<br>$${(savings*12/(document.getElementById('payFrequency').value==='weekly'?52:26)).toFixed(2)}</div>
-      <div class="stat-card">Monthly Savings<br>$${savings.toFixed(2)}</div>
-      <div class="stat-card">Savings Rate<br>${rate.toFixed(1)}%</div>
-      <div class="stat-card">Goal<br>${goalAmount>0?'Set':'None'}</div>
-    </div>
-  `;
+Monthly Income: $${income.toFixed(2)}
+Monthly Expenses: $${expenses.toFixed(2)}
+Monthly Savings: $${savings.toFixed(2)}
+Savings Rate: ${rate.toFixed(1)}%
+Savings Goal: $${goalAmount.toFixed(2)}
+Savings per Paycheck: $${perCheck.toFixed(2)}
 
-  const adviceText = generateFakeAdvice(income, expenses, savings, rate, currentSavings, goalAmount, projectionYears);
-  const adviceDiv = document.getElementById('advice');
-  adviceDiv.style.display = 'block';
-  adviceDiv.textContent = adviceText;
+Your previous advice: ${adviceText}
 
-  const months = Array.from({length: projectionYears*12}, (_,i)=>i+1);
-  const monthlySavings = months.map((m,i)=>currentSavings+savings*i);
+User's question: ${question}
 
-  new Chart(document.getElementById('lineChart'), {type:'line', data:{labels:months,datasets:[{label:'Savings',data:monthlySavings,borderColor:'#3b82f6',fill:false}]}, options:{responsive:true,plugins:{legend:{display:false}}}});
+Provide a helpful, specific answer based on their financial situation. Be concise but actionable.`;
 
-  new Chart(document.getElementById('pieChart'), {type:'pie', data:{labels:['Rent','Utilities','Groceries','Transport','Insurance','Entertainment','Other'],datasets:[{data:[rent,utilities,groceries,transportation,insurance,entertainment,other],backgroundColor:['#3b82f6','#eab308','#22c55e','#a855f7','#ec4899','#f97316','#ef4444']}]}});
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 800,
+                messages: [{ role: 'user', content: context }]
+            })
+        });
 
-  new Chart(document.getElementById('barChart'), {type:'bar', data:{labels:['Income','Expenses','Savings'], datasets:[{data:[income,expenses,savings],backgroundColor:['#22c55e','#ef4444','#3b82f6']}]}});
+        const result = await response.json();
+        const answer = result.content?.[0]?.text || 'Sorry, I could not process your question.';
 
+        chatDiv.innerHTML += `
+            <div class="p-4 rounded-xl bg-gray-50 mr-8">
+                <div class="font-semibold text-sm mb-1 text-gray-600">AI Advisor</div>
+                <div class="text-gray-800">${answer.replace(/\n/g, '<br>')}</div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Question error:', error);
+        chatDiv.innerHTML += `
+            <div class="p-4 rounded-xl bg-gray-50 mr-8">
+                <div class="font-semibold text-sm mb-1 text-gray-600">AI Advisor</div>
+                <div class="text-gray-800">Sorry, I encountered an error. Please try again.</div>
+            </div>
+        `;
+    }
+
+    askBtn.disabled = false;
+    askBtn.textContent = 'Ask';
+    chatDiv.scrollTop = chatDiv.scrollHeight;
 }
 
-function askAI() {
-  const q = document.getElementById('question').value.trim();
-  if(!q) return;
-  chatHistory.push({role:'user',text:q});
-  updateChat();
-  document.getElementById('question').value='';
-  
-  setTimeout(()=>{
-    const last = chatHistory[chatHistory.length-1];
-    const resp = `AI Advisor: Based on your current savings and goal, ${last.text}`;
-    chatHistory.push({role:'ai',text:resp});
-    updateChat();
-  },1000);
+function showResults() {
+    const { income, expenses, savings, rate, currentSavings, goalAmount, projectionYears, perCheck } = resultsData;
+
+    document.getElementById('inputPage').classList.add('hidden');
+    document.getElementById('resultsPage').classList.remove('hidden');
+
+    document.getElementById('monthlySavings').textContent = '$' + savings.toFixed(2);
+    document.getElementById('savingsRate').textContent = rate.toFixed(1) + '%';
+    document.getElementById('perPaycheck').textContent = '$' + perCheck.toFixed(2);
+    document.getElementById('goalProgress').textContent = (goalAmount > 0 ? Math.min(100, (currentSavings / goalAmount * 100)).toFixed(0) : 0) + '%';
+
+    // Format AI advice
+    const formattedAdvice = adviceText
+        .replace(/^##\s+(.+)$/gm, '<div class="font-bold text-lg mt-4 mb-2">$1</div>')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>');
+    
+    document.getElementById('financialAdvice').innerHTML = formattedAdvice;
+
+    createExpenseChart();
+    createYearlyChart(currentSavings, savings, projectionYears);
+    
+    window.scrollTo(0, 0);
 }
 
-function updateChat() {
-  const container = document.getElementById('chatContainer');
-  container.innerHTML = '';
-  chatHistory.forEach(msg=>{
-    const div = document.createElement('div');
-    div.className='chat-message '+(msg.role==='user'?'user':'ai');
-    div.textContent=msg.text;
-    container.appendChild(div);
-  });
-  container.scrollTop=container.scrollHeight;
+function createExpenseChart() {
+    const ctx = document.getElementById('expenseChart').getContext('2d');
+    if (expenseChart) expenseChart.destroy();
+    
+    const rent = parseFloat(document.getElementById('rent').value) || 0;
+    const utilities = parseFloat(document.getElementById('utilities').value) || 0;
+    const groceries = parseFloat(document.getElementById('groceries').value) || 0;
+    const transportation = parseFloat(document.getElementById('transportation').value) || 0;
+    const insurance = parseFloat(document.getElementById('insurance').value) || 0;
+    const entertainment = parseFloat(document.getElementById('entertainment').value) || 0;
+    const other = parseFloat(document.getElementById('otherExpenses').value) || 0;
+
+    const labels = [];
+    const data = [];
+    const colors = ['#3b82f6', '#eab308', '#22c55e', '#a855f7', '#ec4899', '#f97316', '#ef4444'];
+    const items = [
+        ['Rent', rent],
+        ['Utilities', utilities],
+        ['Groceries', groceries],
+        ['Transport', transportation],
+        ['Insurance', insurance],
+        ['Entertainment', entertainment],
+        ['Other', other]
+    ];
+
+    items.forEach((item, idx) => {
+        if (item[1] > 0) {
+            labels.push(item[0]);
+            data.push(item[1]);
+        }
+    });
+
+    expenseChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors.slice(0, data.length)
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+function createYearlyChart(current, monthlySavings, years) {
+    const ctx = document.getElementById('yearlyChart').getContext('2d');
+    if (yearlyChart) yearlyChart.destroy();
+
+    const data = [];
+    let total = current;
+    for (let i = 1; i <= years; i++) {
+        total += monthlySavings * 12;
+        data.push(total);
+    }
+
+    yearlyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: Array.from({length: years}, (_, i) => `Year ${i + 1}`),
+            datasets: [{
+                label: 'Total Savings',
+                data: data,
+                backgroundColor: '#6366f1'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: {
+                y: { 
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toLocaleString();
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return '$' + context.parsed.y.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function goBack() {
+    document.getElementById('resultsPage').classList.add('hidden');
+    document.getElementById('inputPage').classList.remove('hidden');
+    document.getElementById('chatMessages').innerHTML = '';
 }
 </script>
+
 </body>
 </html>
