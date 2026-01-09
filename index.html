@@ -255,7 +255,7 @@ async function calculate() {
 
     try {
         // Call Cloudflare Worker - REPLACE WITH YOUR WORKER URL
-        const response = await fetch('https://YOUR-WORKER-NAME.YOUR-SUBDOMAIN.workers.dev', {
+        const response = await fetch('https://financial-advisor-api.faladeoluwaseun24.workers.dev', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -331,7 +331,7 @@ User's question: ${question}
 
 Provide a helpful, specific answer based on their financial situation. Be concise but actionable.`;
 
-        const response = await fetch('https://YOUR-WORKER-NAME.YOUR-SUBDOMAIN.workers.dev', {
+        const response = await fetch('https://financial-advisor-api.faladeoluwaseun24.workers.dev', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
