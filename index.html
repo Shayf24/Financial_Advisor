@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Financial Advisor</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #e0f2fe, #ede9fe, #f3e8ff); margin: 0; padding: 20px; }
+  .container { max-width: 1200px; margin: auto; }
+  h1 { font-size: 3rem; text-align: center; background: linear-gradient(to right, #4f46e5, #8b5cf6); -webkit-background-clip: text; color: transparent; margin-bottom: 20px; }
+  .card { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); margin-bottom: 20px; }
+  input, select { width: 100%; padding: 10px; border-radius: 10px; border: 2px solid #cbd5e1; margin-bottom: 10px; }
+  button { background: linear-gradient(to right, #4f46e5, #8b5cf6); color: white; font-weight: bold; padding: 15px; border: none; border-radius: 15px; cursor: pointer; width: 100%; margin-top: 10px; }
+  button:hover { opacity: 0.9; }
+  .stats { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
+  .stat-card { flex: 1; min-width: 150px; background: linear-gradient(to bottom right, #34d399, #10b981); color: white; padding: 20px; border-radius: 15px; text-align: center; }
+  canvas { background: #fff; border-radius: 15px; padding: 10px; margin-bottom: 20px; }
+  .advice { background: #f0f9ff; border-left: 5px solid #3b82f6; padding: 15px; border-radius: 10px; margin-bottom: 20px; white-space: pre-line; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>AI Financial Advisor</h1>
+
+  <div class="card">
+    <h2>Monthly Income</h2>
+    <input type="number" id="income" placeholder="5000">
+    <select id="payFrequency">
+      <option value="weekly">Weekly</option>
+      <option value="biweekly">Bi-Weekly</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <h2>Monthly Expenses</h2>
+    <input type="number" id="rent" placeholder="Rent">
+    <input type="number" id="utilities" placeholder="Utilities">
+    <input type="number" id="groceries" placeholder="Groceries">
+    <input type="number" id="transportation" placeholder="Transport">
+    <input type="number" id="insurance" placeholder="Insurance">
+    <input type="number" id="entertainment" placeholder="Entertainment">
+    <input type="number" id="other" placeholder="Other">
+  </div>
+
+  <div class="card">
+    <h2>Goals & Projections</h2>
+    <input type="number" id="currentSavings" placeholder="Current Savings">
+    <input type="number" id="goalAmount" placeholder="Goal Amount">
+    <select id="projectionYears">
+      <option value="1">1 Year</option>
+      <option value="3">3 Years</option>
+      <option value="5" selected>5 Years</option>
+      <option value="10">10 Years</option>
+      <option value="15">15 Years</option>
+      <option value="20">20 Years</option>
+    </select>
+  </div>
+
+  <button onclick="calculate()">Get AI Financial Advice</button>
+
+  <div id="results"></div>
+  <div id="advice" class="advice" style="display:none;"></div>
+  <canvas id="lineChart" width="400" height="200"></canvas>
+  <canvas id="pieChart" width="400" height="200"></canvas>
+  <canvas id="barChart" width="400" height="200"></canvas>
+</div>
+
+<script>
+function generateFakeAdvice(income, expenses, savings, rate, currentSavings, goalAmount, projectionYears) {
+  let advice = '';
+  advice += 'CURRENT FINANCIAL HEALTH:\n';
+  if (savings <= 0) advice += 'Your expenses exceed or match your income. Consider reducing spending.\n';
+  else advice += `You are saving $${savings.toFixed(2)} per month, which is ${rate.toFixed(1)}% of your income.\n`;
+
+  advice += '\nYOUR PAYCHECK SAVINGS PLAN:\n';
+  advice += `Save $${(savings * 12 / (document.getElementById('payFrequency').value === 'weekly' ? 52 : 26)).toFixed(2)} per paycheck.\n`;
+
+  advice += '\nREACHING YOUR GOAL:\n';
+  const totalProjected = currentSavings + savings*12*projectionYears;
+  if (goalAmount > 0) {
+    advice += totalProjected >= goalAmount ? 'You are on track to reach your goal.\n' : 'You may need to save more or extend your timeline.\n';
+  } else {
+    advice += 'Set a goal to focus your savings.\n';
+  }
+
+  advice += '\nACTION ITEMS:\n';
+  if (savings <= 0) advice += 'Reduce discretionary expenses.\n';
+  else advice += 'Continue saving consistently each month.\n';
+
+  advice += '\nEXPENSE OPTIMIZATION:\n';
+  advice += 'Review bills and subscriptions to find areas to cut costs.\n';
+  return advice;
+}
+
+function calculate() {
+  const income = parseFloat(document.getElementById('income').value) || 0;
+  const rent = parseFloat(document.getElementById('rent').value) || 0;
+  const utilities = parseFloat(document.getElementById('utilities').value) || 0;
+  const groceries = parseFloat(document.getElementById('groceries').value) || 0;
+  const transportation = parseFloat(document.getElementById('transportation').value) || 0;
+  const insurance = parseFloat(document.getElementById('insurance').value) || 0;
+  const entertainment = parseFloat(document.getElementById('entertainment').value) || 0;
+  const other = parseFloat(document.getElementById('other').value) || 0;
+  const currentSavings = parseFloat(document.getElementById('currentSavings').value) || 0;
+  const goalAmount = parseFloat(document.getElementById('goalAmount').value) || 0;
+  const projectionYears = parseInt(document.getElementById('projectionYears').value) || 5;
+
+  const expenses = rent + utilities + groceries + transportation + insurance + entertainment + other;
+  const savings = income - expenses;
+  const rate = income > 0 ? savings / income * 100 : 0;
+
+  // Show results stats
+  document.getElementById('results').innerHTML = `
+    <div class="stats">
+      <div class="stat-card">Per Paycheck<br>$${(savings * 12 / (document.getElementById('payFrequency').value === 'weekly' ? 52 : 26)).toFixed(2)}</div>
+      <div class="stat-card">Monthly Savings<br>$${savings.toFixed(2)}</div>
+      <div class="stat-card">Savings Rate<br>${rate.toFixed(1)}%</div>
+      <div class="stat-card">Goal<br>${goalAmount > 0 ? 'Set' : 'None'}</div>
+    </div>
+  `;
+
+  // Show fake AI advice
+  const adviceText = generateFakeAdvice(income, expenses, savings, rate, currentSavings, goalAmount, projectionYears);
+  const adviceDiv = document.getElementById('advice');
+  adviceDiv.style.display = 'block';
+  adviceDiv.textContent = adviceText;
+
+  // Charts
+  const months = Array.from({length: projectionYears*12}, (_, i) => i+1);
+  const monthlySavings = months.map((m, i) => currentSavings + savings*i);
+
+  new Chart(document.getElementById('lineChart'), {
+    type: 'line',
+    data: { labels: months, datasets: [{ label: 'Savings', data: monthlySavings, borderColor: '#3b82f6', fill: false }] },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+  });
+
+  new Chart(document.getElementById('pieChart'), {
+    type: 'pie',
+    data: {
+      labels: ['Rent','Utilities','Groceries','Transport','Insurance','Entertainment','Other'],
+      datasets: [{
+        data: [rent, utilities, groceries, transportation, insurance, entertainment, other],
+        backgroundColor: ['#3b82f6','#eab308','#22c55e','#a855f7','#ec4899','#f97316','#ef4444']
+      }]
+    }
+  });
+
+  new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Income','Expenses','Savings'],
+      datasets: [{ data: [income, expenses, savings], backgroundColor: ['#22c55e','#ef4444','#3b82f6'] }]
+    }
+  });
+}
+</script>
+</body>
+</html>
